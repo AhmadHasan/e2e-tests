@@ -2,7 +2,7 @@ package com.mesmoray.lektora.e2etests.metaservice
 
 import com.mesmoray.lektora.e2etests.config.E2EConfig.Companion.AGENT_NAME
 import com.mesmoray.lektora.e2etests.config.E2EConfig.Companion.META_SERVICE_URL
-import com.mesmoray.lektora.e2etests.metaservice.Utils.Companion.randomCountryCode
+import com.mesmoray.lektora.e2etests.metaservice.Utils.Companion.randomLanguageCode
 import io.gatling.javaapi.core.CoreDsl
 import io.gatling.javaapi.core.CoreDsl.StringBody
 import io.gatling.javaapi.core.CoreDsl.bodyString
@@ -12,28 +12,28 @@ import io.gatling.javaapi.core.Simulation
 import io.gatling.javaapi.http.HttpDsl.http
 import io.gatling.javaapi.http.HttpDsl.status
 
-class CountryCRUDSimulation : Simulation() {
+class LanguageCRUDSimulation : Simulation() {
     companion object {
-        private val countryCode = randomCountryCode()
-        private const val COUNTRY_NAME = "Deutschland"
+        private val languageCode = randomLanguageCode()
+        private val languageName = "Deutsch"
 
-        val createCountry =
+        val createLanguage =
             exec(
-                http("Create Country")
-                    .post("/countries")
+                http("Create Language")
+                    .post("/languages")
                     .body(
-                        StringBody("""{"name": "$COUNTRY_NAME", "code": "$countryCode"}""".trimIndent()),
+                        StringBody("""{"name": "$languageName", "code": "$languageCode"}""".trimIndent()),
                     )
                     .check(status().shouldBe(201))
-                    .check(jsonPath("$.code").shouldBe(countryCode))
-                    .check(jsonPath("$.name").shouldBe(COUNTRY_NAME))
-                    .check(jsonPath("$.code").saveAs("countryCode")),
+                    .check(jsonPath("$.code").shouldBe(languageCode))
+                    .check(jsonPath("$.name").shouldBe(languageName))
+                    .check(jsonPath("$.code").saveAs("languageCode")),
             )
 
-        val deleteCountry =
+        val deleteLanguage =
             exec(
-                http("Delete Country")
-                    .delete("/countries/#{countryCode}")
+                http("Delete Language")
+                    .delete("/languages/#{languageCode}")
                     .check(status().shouldBe(204)),
             )
     }
@@ -55,46 +55,46 @@ class CountryCRUDSimulation : Simulation() {
                 .check(bodyString().`is`("Application is healthy")),
         )
 
-    private val readCountry =
+    private val readLanguage =
         exec(
-            http("Read Country")
-                .get("/countries/#{countryCode}")
+            http("Read Language")
+                .get("/languages/#{languageCode}")
                 .check(status().shouldBe(200))
-                .check(jsonPath("$.name").shouldBe(COUNTRY_NAME)),
+                .check(jsonPath("$.name").shouldBe(languageName)),
         )
 
-    private val updateCountry =
+    private val updateLanguage =
         exec(
-            http("Update Country")
-                .put("/countries/#{countryCode}")
-                .body(StringBody("""{"code": "$countryCode", "name": "$COUNTRY_NAME"}"""))
+            http("Update Language")
+                .put("/languages/#{languageCode}")
+                .body(StringBody("""{"code": "$languageCode", "name": "$languageName"}"""))
                 .check(status().shouldBe(200)),
         )
 
-    private val getAllCountries =
+    private val getAllLanguages =
         exec(
-            http("Get All Country")
-                .get("/countries")
+            http("Get All Languages")
+                .get("/languages")
                 .check(status().shouldBe(200)),
         )
 
-    private val countries =
-        CoreDsl.scenario("Countries")
+    private val languages =
+        CoreDsl.scenario("Languages")
             .exec(
-                createCountry.exec(
-                    readCountry,
+                createLanguage.exec(
+                    readLanguage,
                 ).exec(
-                    updateCountry,
+                    updateLanguage,
                 ).exec(
-                    deleteCountry,
+                    deleteLanguage,
                 ),
-                getAllCountries,
+                getAllLanguages,
                 healthCheck,
             )
 
     init {
         setUp(
-            countries.injectOpen(CoreDsl.rampUsers(1).during(1)),
+            languages.injectOpen(CoreDsl.rampUsers(1).during(1)),
         ).protocols(httpProtocol)
     }
 }

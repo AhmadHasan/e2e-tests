@@ -2,7 +2,7 @@ package com.mesmoray.lektora.e2etests.metaservice
 
 import com.mesmoray.lektora.e2etests.config.E2EConfig.Companion.AGENT_NAME
 import com.mesmoray.lektora.e2etests.config.E2EConfig.Companion.META_SERVICE_URL
-import com.mesmoray.lektora.e2etests.metaservice.Utils.Companion.randomCountryCode
+import com.mesmoray.lektora.e2etests.metaservice.Utils.Companion.randomString
 import io.gatling.javaapi.core.CoreDsl
 import io.gatling.javaapi.core.CoreDsl.StringBody
 import io.gatling.javaapi.core.CoreDsl.bodyString
@@ -12,28 +12,28 @@ import io.gatling.javaapi.core.Simulation
 import io.gatling.javaapi.http.HttpDsl.http
 import io.gatling.javaapi.http.HttpDsl.status
 
-class CountryCRUDSimulation : Simulation() {
+class CategoryCRUDSimulation : Simulation() {
     companion object {
-        private val countryCode = randomCountryCode()
-        private const val COUNTRY_NAME = "Deutschland"
+        private val catName = randomString(5)
+        private val catDescription = randomString(10)
 
-        val createCountry =
+        val createCategory =
             exec(
-                http("Create Country")
-                    .post("/countries")
+                http("Create Category")
+                    .post("/categories")
                     .body(
-                        StringBody("""{"name": "$COUNTRY_NAME", "code": "$countryCode"}""".trimIndent()),
+                        StringBody("""{"name": "$catName", "description": "$catDescription"}""".trimIndent()),
                     )
                     .check(status().shouldBe(201))
-                    .check(jsonPath("$.code").shouldBe(countryCode))
-                    .check(jsonPath("$.name").shouldBe(COUNTRY_NAME))
-                    .check(jsonPath("$.code").saveAs("countryCode")),
+                    .check(jsonPath("$.name").shouldBe(catName))
+                    .check(jsonPath("$.description").shouldBe(catDescription))
+                    .check(jsonPath("$.id").saveAs("categoryId")),
             )
 
-        val deleteCountry =
+        val deleteCategory =
             exec(
-                http("Delete Country")
-                    .delete("/countries/#{countryCode}")
+                http("Delete Category")
+                    .delete("/categories/#{categoryId}")
                     .check(status().shouldBe(204)),
             )
     }
@@ -55,46 +55,47 @@ class CountryCRUDSimulation : Simulation() {
                 .check(bodyString().`is`("Application is healthy")),
         )
 
-    private val readCountry =
+    private val readCategory =
         exec(
-            http("Read Country")
-                .get("/countries/#{countryCode}")
+            http("Read Category")
+                .get("/categories/#{categoryId}")
                 .check(status().shouldBe(200))
-                .check(jsonPath("$.name").shouldBe(COUNTRY_NAME)),
+                .check(jsonPath("$.name").shouldBe(catName))
+                .check(jsonPath("$.description").shouldBe(catDescription)),
         )
 
-    private val updateCountry =
+    private val updateCategory =
         exec(
-            http("Update Country")
-                .put("/countries/#{countryCode}")
-                .body(StringBody("""{"code": "$countryCode", "name": "$COUNTRY_NAME"}"""))
+            http("Update Category")
+                .put("/categories/#{categoryId}")
+                .body(StringBody("""{"id": "#{categoryId}","name": "$catName", "description": "$catDescription"}"""))
                 .check(status().shouldBe(200)),
         )
 
-    private val getAllCountries =
+    private val getAllCategories =
         exec(
-            http("Get All Country")
-                .get("/countries")
+            http("Get All Categories")
+                .get("/categories")
                 .check(status().shouldBe(200)),
         )
 
-    private val countries =
-        CoreDsl.scenario("Countries")
+    private val languages =
+        CoreDsl.scenario("Categories")
             .exec(
-                createCountry.exec(
-                    readCountry,
+                createCategory.exec(
+                    readCategory,
                 ).exec(
-                    updateCountry,
+                    updateCategory,
                 ).exec(
-                    deleteCountry,
+                    deleteCategory,
                 ),
-                getAllCountries,
+                getAllCategories,
                 healthCheck,
             )
 
     init {
         setUp(
-            countries.injectOpen(CoreDsl.rampUsers(1).during(1)),
+            languages.injectOpen(CoreDsl.rampUsers(1).during(1)),
         ).protocols(httpProtocol)
     }
 }
