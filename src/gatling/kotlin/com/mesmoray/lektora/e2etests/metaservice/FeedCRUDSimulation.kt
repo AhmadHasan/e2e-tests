@@ -11,8 +11,6 @@ import com.mesmoray.lektora.e2etests.metaservice.LanguageCRUDSimulation.Companio
 import com.mesmoray.lektora.e2etests.metaservice.LanguageCRUDSimulation.Companion.deleteLanguage
 import com.mesmoray.lektora.e2etests.metaservice.PublisherCRUDSimulation.Companion.createPublisher
 import com.mesmoray.lektora.e2etests.metaservice.PublisherCRUDSimulation.Companion.deletePublisher
-import com.mesmoray.lektora.e2etests.metaservice.Utils.Companion.randomCountryCode
-import com.mesmoray.lektora.e2etests.metaservice.Utils.Companion.randomLanguageCode
 import com.mesmoray.lektora.e2etests.metaservice.Utils.Companion.randomString
 import io.gatling.javaapi.core.CoreDsl
 import io.gatling.javaapi.core.CoreDsl.StringBody
@@ -22,13 +20,13 @@ import io.gatling.javaapi.core.CoreDsl.jsonPath
 import io.gatling.javaapi.core.Simulation
 import io.gatling.javaapi.http.HttpDsl.http
 import io.gatling.javaapi.http.HttpDsl.status
-import   io.gatling.javaapi.http.HttpRequestActionBuilder
+import io.gatling.javaapi.http.HttpRequestActionBuilder
 
 class FeedCRUDSimulation : Simulation() {
     companion object {
         private val feedName = randomString(5)
         private const val FEED_FORMAT = "RSS"
-        private const val feedUrl = SPIEGEL_TEST_FEED_URL
+        private const val FEED_URL = SPIEGEL_TEST_FEED_URL
     }
 
     private val httpProtocol =
@@ -57,7 +55,7 @@ class FeedCRUDSimulation : Simulation() {
                         """
                         {
                             "name": "$feedName",
-                            "url": "$feedUrl",
+                            "url": "$FEED_URL",
                             "countryCode": "#{countryCode}", 
                             "languageCode":"#{languageCode}",
                             "categoryId": "#{categoryId}",
@@ -75,11 +73,11 @@ class FeedCRUDSimulation : Simulation() {
     private fun HttpRequestActionBuilder.checkFeed() =
         check(
             jsonPath("$.name").shouldBe(feedName),
-            jsonPath("$.url").shouldBe(feedUrl),
-            jsonPath("$.countryCode").shouldBe {session -> session.get("countryCode")},
-            jsonPath("$.languageCode").shouldBe{session -> session.get("languageCode")},
-            jsonPath("$.categoryId").shouldBe{session -> session.get("categoryId")},
-            jsonPath("$.publisherId").shouldBe{session -> session.get("publisherId")},
+            jsonPath("$.url").shouldBe(FEED_URL),
+            jsonPath("$.countryCode").shouldBe { session -> session.get("countryCode") },
+            jsonPath("$.languageCode").shouldBe { session -> session.get("languageCode") },
+            jsonPath("$.categoryId").shouldBe { session -> session.get("categoryId") },
+            jsonPath("$.publisherId").shouldBe { session -> session.get("publisherId") },
         )
 
     private val readFeed =
@@ -87,7 +85,7 @@ class FeedCRUDSimulation : Simulation() {
             http("Read Feed")
                 .get("/feeds/#{feedId}")
                 .check(status().shouldBe(200))
-                .checkFeed()
+                .checkFeed(),
         )
 
     private val updateFeed =
@@ -100,7 +98,7 @@ class FeedCRUDSimulation : Simulation() {
                         {
                             "id": "#{feedId}",
                             "name": "$feedName",
-                                                        "url": "$feedUrl",
+                                                        "url": "$FEED_URL",
                                                         "countryCode": "#{countryCode}", 
                                                         "languageCode":"#{languageCode}",
                                                         "categoryId": "#{categoryId}",
@@ -159,7 +157,7 @@ class FeedCRUDSimulation : Simulation() {
                     .exec(deleteCategory)
                     .exec(deleteCountry)
                     .exec(deleteLanguage)
-                    .exec(deletePublisher)
+                    .exec(deletePublisher),
             )
 
     init {

@@ -26,7 +26,13 @@ class PublisherCRUDSimulation : Simulation() {
                     .post("/publishers")
                     .body(
                         StringBody(
-                            """{"name": "$publisherName", "countryCode": "$countryCode", "mainLanguageCode":"$languageCode"}""".trimIndent(),
+                            """
+                                {
+                                "name": "$publisherName", 
+                                "countryCode": "$countryCode", 
+                                "mainLanguageCode":"$languageCode"
+                            }
+                            """.trimIndent(),
                         ),
                     )
                     .check(status().shouldBe(201))
@@ -77,7 +83,14 @@ class PublisherCRUDSimulation : Simulation() {
                 .put("/publishers/#{publisherId}")
                 .body(
                     StringBody(
-                        """{"id": "#{publisherId}", "name": "$publisherName", "countryCode": "$countryCode", "mainLanguageCode":"$languageCode"}""".trimIndent(),
+                        """
+                        {
+                        "id": "#{publisherId}", 
+                        "name": "$publisherName", 
+                        "countryCode": "$countryCode", 
+                        "mainLanguageCode":"$languageCode"
+                        }
+                        """.trimIndent(),
                     ),
                 )
                 .check(status().shouldBe(200)),
