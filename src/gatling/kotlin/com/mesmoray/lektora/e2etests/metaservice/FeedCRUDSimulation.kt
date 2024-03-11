@@ -22,12 +22,10 @@ import io.gatling.javaapi.core.CoreDsl.jsonPath
 import io.gatling.javaapi.core.Simulation
 import io.gatling.javaapi.http.HttpDsl.http
 import io.gatling.javaapi.http.HttpDsl.status
+import   io.gatling.javaapi.http.HttpRequestActionBuilder
 
 class FeedCRUDSimulation : Simulation() {
     companion object {
-        private val publisherName = randomString(5)
-        private val languageCode = randomLanguageCode()
-        private val countryCode = randomCountryCode()
         private val feedName = randomString(5)
         private const val FEED_FORMAT = "RSS"
         private const val feedUrl = SPIEGEL_TEST_FEED_URL
@@ -59,9 +57,9 @@ class FeedCRUDSimulation : Simulation() {
                         """
                         {
                             "name": "$feedName",
-                            "url": "$feedUrl"
-                            "countryCode": "$countryCode", 
-                            "mainLanguageCode":"$languageCode",
+                            "url": "$feedUrl",
+                            "countryCode": "#{countryCode}", 
+                            "languageCode":"#{languageCode}",
                             "categoryId": "#{categoryId}",
                             "publisherId": "#{publisherId}",
                             "format": "$FEED_FORMAT"
@@ -70,11 +68,18 @@ class FeedCRUDSimulation : Simulation() {
                     ),
                 )
                 .check(status().shouldBe(201))
-                .check(jsonPath("$.name").shouldBe(publisherName))
-                .check(jsonPath("$.url").shouldBe(feedUrl))
-                .check(jsonPath("$.countryCode").shouldBe(countryCode))
-                .check(jsonPath("$.languageCode").shouldBe(languageCode))
+                .checkFeed()
                 .check(jsonPath("$.id").saveAs("feedId")),
+        )
+
+    private fun HttpRequestActionBuilder.checkFeed() =
+        check(
+            jsonPath("$.name").shouldBe(feedName),
+            jsonPath("$.url").shouldBe(feedUrl),
+            jsonPath("$.countryCode").shouldBe {session -> session.get("countryCode")},
+            jsonPath("$.languageCode").shouldBe{session -> session.get("languageCode")},
+            jsonPath("$.categoryId").shouldBe{session -> session.get("categoryId")},
+            jsonPath("$.publisherId").shouldBe{session -> session.get("publisherId")},
         )
 
     private val readFeed =
@@ -82,10 +87,7 @@ class FeedCRUDSimulation : Simulation() {
             http("Read Feed")
                 .get("/feeds/#{feedId}")
                 .check(status().shouldBe(200))
-                .check(jsonPath("$.name").shouldBe(feedName))
-                .check(jsonPath("$.url").shouldBe(feedUrl))
-                .check(jsonPath("$.countryCode").shouldBe(countryCode))
-                .check(jsonPath("$.languageCode").shouldBe(languageCode)),
+                .checkFeed()
         )
 
     private val updateFeed =
@@ -98,11 +100,12 @@ class FeedCRUDSimulation : Simulation() {
                         {
                             "id": "#{feedId}",
                             "name": "$feedName",
-                            "url": "$feedUrl"
-                            "countryCode": "$countryCode", 
-                            "mainLanguageCode":"$languageCode",
-                            "categoryId": "#{categoryId}",
-                            "publisherId": "#{publisherId}"                           
+                                                        "url": "$feedUrl",
+                                                        "countryCode": "#{countryCode}", 
+                                                        "languageCode":"#{languageCode}",
+                                                        "categoryId": "#{categoryId}",
+                                                        "publisherId": "#{publisherId}",
+                                                        "format": "$FEED_FORMAT"                       
                         }
                         """.trimIndent(),
                     ),
@@ -117,31 +120,46 @@ class FeedCRUDSimulation : Simulation() {
                 .check(status().shouldBe(204)),
         )
 
-    private val getAllFeeds =
+    private val getCountryFeeds =
         exec(
-            http("Get All Feeds")
-                .get("/feeds")
+            http("Get Country Feeds")
+                .get("/feeds/country/#{countryCode}")
+                .check(status().shouldBe(200)),
+        )
+
+    private val getLanguageFeeds =
+        exec(
+            http("Get Language Feeds")
+                .get("/feeds/language/#{languageCode}")
+                .check(status().shouldBe(200)),
+        )
+
+    private val getPublisherFeeds =
+        exec(
+            http("Get Publisher Feeds")
+                .get("/feeds/publisher/#{publisherId}")
                 .check(status().shouldBe(200)),
         )
 
     private val publishers =
         CoreDsl.scenario("Feeds")
             .exec(
-                createCountry
+                healthCheck
+                    .exec(createCountry)
                     .exec(createLanguage)
                     .exec(createCategory)
                     .exec(createPublisher)
                     .exec(createFeed)
                     .exec(readFeed)
                     .exec(updateFeed)
-                    .exec(deleteFeed)
+                    .exec(getCountryFeeds)
+                    .exec(getLanguageFeeds)
+                    .exec(getPublisherFeeds)
                     .exec(deleteFeed)
                     .exec(deleteCategory)
                     .exec(deleteCountry)
                     .exec(deleteLanguage)
-                    .exec(deletePublisher),
-                getAllFeeds,
-                healthCheck,
+                    .exec(deletePublisher)
             )
 
     init {
